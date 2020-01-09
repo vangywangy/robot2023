@@ -10,6 +10,7 @@ package frc.robot;
 import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.GenericHID.Hand;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -35,13 +36,15 @@ public class Robot extends TimedRobot {
   private PWMTalonSRX wrist = new PWMTalonSRX(4);
   
   
-  private Joystick whiteR = new Joystick(0);
-  
+  //private Joystick whiteR = new Joystick(0);
+  private XboxController xbox = new XboxController(0);
 
   private SpeedControllerGroup m_left = new SpeedControllerGroup(m_leftA, m_leftB);
 	private SpeedControllerGroup m_right = new SpeedControllerGroup(m_rightA, m_rightB);
 
   private DifferentialDrive m_drive = new DifferentialDrive(m_left, m_right);
+
+  private double limitedJoystick = 0.5;
 
   /**
    * This function is run when the robot is first started up and should be
@@ -105,13 +108,29 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void teleopPeriodic() {
-    double m_stickX = whiteR.getX();
-		double m_stickY = whiteR.getY();
+    //double m_stickX = whiteR.getX();
+		//double m_stickY = whiteR.getY();
     //double m_stickZ = whiteR.getZ();
-    m_drive.arcadeDrive(m_stickY * -1, m_stickX);
+
+    double m_stickX = xbox.getX(Hand.kLeft);
+    double m_stickY = xbox.getY(Hand.kLeft);
+
+		double change = m_stickY - limitedJoystick;
+		double limit = 0.025;
+
+    // so the robot doesnt flip over if we stop all of a sudden
+		if (change > limit)
+			change = limit;
+		
+		else if(change < limit * -1)
+      change = limit * -1;
+      
+    limitedJoystick += change;
+
+    m_drive.arcadeDrive(limitedJoystick * -1, m_stickX);
     //anthony's coding starts from here (note that i set up teethshifting above)
     // awesome thing controls the green ball shooty thing (update: it is impossible to shoot the ball with this)
-    if(whiteR.getRawButton(6)){
+    /*if(whiteR.getRawButton(6)){
       teethshifting.set(1);
     }
     else if(whiteR.getRawButton(4)){
@@ -129,7 +148,7 @@ public class Robot extends TimedRobot {
 			wrist.set(0);
 
    
-    //ends here
+    //ends here*/
   }
 
   /**
