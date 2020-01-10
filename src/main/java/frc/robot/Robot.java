@@ -94,6 +94,7 @@ public class Robot extends TimedRobot {
   public void autonomousPeriodic() {
     switch (m_autoSelected) {
       case kCustomAuto:
+
         // Put custom auto code here
         break;
       case kDefaultAuto:
@@ -106,6 +107,27 @@ public class Robot extends TimedRobot {
   /**
    * This function is called periodically during operator control.
    */
+  public void daboat(){
+    //anthony's coding starts from here (note that i set up teethshifting above)
+    // awesome thing controls the green ball shooty thing (update: it is impossible to shoot the ball with this)
+    if(xbox.getRawButton(6)){
+      teethshifting.set(1);
+    }
+    
+    else if(xbox.getRawButton(4)){
+      teethshifting.set(-1);
+    }
+    else{
+      teethshifting.set(0);
+    }
+    //wrist is the tiny thingy tha ontrols the angle of the ball box thing
+    if(xbox.getRawButton(1))
+			wrist.set(0.50);
+		else if(xbox.getRawButton(2))
+			wrist.set(-0.35);
+		else
+			wrist.set(0);
+  }
   @Override
   public void teleopPeriodic() {
     //double m_stickX = whiteR.getX();
@@ -113,39 +135,42 @@ public class Robot extends TimedRobot {
     //double m_stickZ = whiteR.getZ();
 
     double m_stickX = xbox.getX(Hand.kLeft);
-    double m_stickY = xbox.getY(Hand.kLeft);
+    //double m_stickY = xbox.getY(Hand.kLeft);
+
+    double l_trigger = xbox.getTriggerAxis(Hand.kLeft) * -1;
+    double r_trigger = xbox.getTriggerAxis(Hand.kRight);
+    double m_stickY = l_trigger + r_trigger;
+
+    // anthony attempts to use the kRight
+    double s_stickX = xbox.getX(Hand.kRight);
+    double s_stickY = xbox.getY(Hand.kRight);
+
+    if(m_stickX < 0.01 && m_stickX > -0.01){
+      m_stickX = 0;
+    }
+    if(m_stickY < 0.01 && m_stickY > -0.01){
+      m_stickY = 0;
+    }
+
+
 
 		double change = m_stickY - limitedJoystick;
 		double limit = 0.025;
 
     // so the robot doesnt flip over if we stop all of a sudden
-		if (change > limit)
+		/*if (change > limit)
 			change = limit;
 		
 		else if(change < limit * -1)
       change = limit * -1;
       
-    limitedJoystick += change;
+    limitedJoystick += change;*/
+    
+    //for xbox
+    limitedJoystick = m_stickY * -1;
 
     m_drive.arcadeDrive(limitedJoystick * -1, m_stickX);
-    //anthony's coding starts from here (note that i set up teethshifting above)
-    // awesome thing controls the green ball shooty thing (update: it is impossible to shoot the ball with this)
-    /*if(whiteR.getRawButton(6)){
-      teethshifting.set(1);
-    }
-    else if(whiteR.getRawButton(4)){
-      teethshifting.set(-1);
-    }
-    else{
-      teethshifting.set(0);
-    }
-    //wrist is the tiny thingy tha ontrols the angle of the ball box thing
-    if(whiteR.getRawButton(1))
-			wrist.set(0.50);
-		else if(whiteR.getRawButton(2))
-			wrist.set(-0.35);
-		else
-			wrist.set(0);
+    daboat();
 
    
     //ends here*/
