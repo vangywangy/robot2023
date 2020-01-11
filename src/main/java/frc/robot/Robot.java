@@ -44,7 +44,8 @@ public class Robot extends TimedRobot {
 
   private DifferentialDrive m_drive = new DifferentialDrive(m_left, m_right);
 
-  private double limitedJoystick = 0.5;
+  private double limitedTrigger = 0.5;
+  private double limitedTurn = 0;
 
   /**
    * This function is run when the robot is first started up and should be
@@ -142,35 +143,55 @@ public class Robot extends TimedRobot {
     double m_stickY = l_trigger + r_trigger;
 
     // anthony attempts to use the kRight
-    double s_stickX = xbox.getX(Hand.kRight);
-    double s_stickY = xbox.getY(Hand.kRight);
+    //double s_stickX = xbox.getX(Hand.kRight);
+    //double s_stickY = xbox.getY(Hand.kRight);
 
-    if(m_stickX < 0.01 && m_stickX > -0.01){
+    if(m_stickX < 0.1 && m_stickX > -0.1){
       m_stickX = 0;
     }
     if(m_stickY < 0.01 && m_stickY > -0.01){
       m_stickY = 0;
-    }
+    } 
+    
+    if(m_stickX > 0.75)
+      m_stickX = 0.75;
+    else if (m_stickX < -0.75)
+      m_stickX = -0.75;
 
 
+    
+		double triggerChange = m_stickY - limitedTrigger;
+    double triggerLimit = 0.025;
 
-		double change = m_stickY - limitedJoystick;
-		double limit = 0.025;
+    double turnChange = m_stickX - limitedTurn;
+    double turnLimit = 0.025;
 
     // so the robot doesnt flip over if we stop all of a sudden
-		/*if (change > limit)
-			change = limit;
+		if (triggerChange > triggerLimit)
+			triggerChange = triggerLimit;
 		
-		else if(change < limit * -1)
-      change = limit * -1;
-      
-    limitedJoystick += change;*/
+		else if(triggerChange < triggerLimit * -1)
+      triggerChange = triggerLimit * -1;
+
+    if (turnChange > turnLimit)
+      turnChange = turnLimit;
+		
+		else if(turnChange < turnLimit * -1)
+      turnChange = turnLimit * -1;
+
+    limitedTrigger += triggerChange;
+    limitedTurn += turnChange;
     
     //for xbox
-    limitedJoystick = m_stickY * -1;
-
-    m_drive.arcadeDrive(limitedJoystick * -1, m_stickX);
-    daboat();
+    limitedTrigger = m_stickY * -1;
+    double mulitiplier = 0;
+    if(xbox.getBumper(Hand.kRight))
+      mulitiplier = 0.5;
+    if(xbox.getBumper(Hand.kLeft))
+      mulitiplier = -0.5;
+    
+    m_drive.arcadeDrive(m_stickY, m_stickX + mulitiplier);
+    //daboat();
 
    
     //ends here*/
