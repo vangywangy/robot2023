@@ -13,7 +13,10 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.GenericHID.Hand;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-
+//import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.networktables.NetworkTableInstance;
 /**
  * The VM is configured to automatically run this class, and to call the
  * functions corresponding to each mode, as described in the TimedRobot
@@ -46,6 +49,10 @@ public class Robot extends TimedRobot {
 
   private double limitedTrigger = 0.5;
   private double limitedTurn = 0;
+
+  private double tx = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tx").getDouble(0);
+  private double ty = NetworkTableInstance.getDefault().getTable("limelight").getEntry("ty").getDouble(0);
+  private double turnDir = 1;
 
   /**
    * This function is run when the robot is first started up and should be
@@ -100,9 +107,41 @@ public class Robot extends TimedRobot {
         break;
       case kDefaultAuto:
       default:
-        // Put default auto code here
+       
         break;
     }
+      NetworkTable table = NetworkTableInstance.getDefault().getTable("limelight");
+      NetworkTableEntry tx = table.getEntry("tx");
+      NetworkTableEntry ty = table.getEntry("ty");
+      //NetworkTableEntry ta = table.getEntry("ta");
+      NetworkTableEntry tv = table.getEntry("tv");
+      double speed = 0.5;
+      double threshold = 5;
+      double x = tx.getDouble(0.0);
+      double y = ty.getDouble(0.0);
+      System.out.printf("x: %f, y: %f%n", x, y);
+      double targetstatus = tv.getDouble(0.0);
+      if(targetstatus == 0.0){
+        m_drive.arcadeDrive(0, speed * turnDir);
+      }
+      else{	
+        if(x > threshold) {
+          m_drive.arcadeDrive(0, speed);
+          turnDir = 1;
+          } 
+          else if (x < -1 * threshold) {
+            m_drive.arcadeDrive(0, -1 * speed);
+            turnDir = -1;
+          	}
+      }
+      //double area = ta.getDouble(0.0);
+      
+    
+    
+
+
+
+
   }
 
   /**
@@ -157,8 +196,10 @@ public class Robot extends TimedRobot {
       m_stickX = 0.75;
     else if (m_stickX < -0.75)
       m_stickX = -0.75;
-
-
+    
+    //brake button lol
+    if(xbox.getRawButton(3))
+      m_stickY = 0;
     
 		double triggerChange = m_stickY - limitedTrigger;
     double triggerLimit = 0.025;
@@ -172,7 +213,7 @@ public class Robot extends TimedRobot {
 		
 		else if(triggerChange < triggerLimit * -1)
       triggerChange = triggerLimit * -1;
-
+ 
     if (turnChange > turnLimit)
       turnChange = turnLimit;
 		
