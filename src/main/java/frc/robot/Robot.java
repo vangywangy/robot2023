@@ -1,19 +1,22 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2017-2018 FIRST. All Rights Reserved.                        */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
-
 package frc.robot;
 
 import edu.wpi.first.wpilibj.*;
-import edu.wpi.first.wpilibj.drive.*;
+//import edu.wpi.first.wpilibj.drive.*;
+import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.GenericHID.Hand;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
+
+// import edu.wpi.first.networktables.NetworkTable;
+// import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.wpilibj.motorcontrol.PWMTalonSRX;
+import edu.wpi.first.wpilibj.Servo;
+// import com.revrobotics.CANSparkMax;
+// import com.revrobotics.CANSparkMaxLowLevel.MotorType;
+
+import edu.wpi.first.wpilibj.motorcontrol.PWMSparkMax;
 /**
  * The VM is configured to automatically run this class, and to call the
  * functions corresponding to each mode, as described in the TimedRobot
@@ -21,56 +24,37 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
  * creating this project, you must also update the build.gradle file in the
  * project.
  */
+
 public class Robot extends TimedRobot {
   private static final String kDefaultAuto = "Default";
   private static final String kCustomAuto = "My Auto";
   private String m_autoSelected;
   private final SendableChooser<String> m_chooser = new SendableChooser<>();
 
-	//private PWMTalonSRX m_leftA = new PWMTalonSRX(0);
-	//private PWMTalonSRX m_leftB = new PWMTalonSRX(1);
-	//private PWMTalonSRX m_rightA = new PWMTalonSRX(3);
-  //private PWMTalonSRX m_rightB = new PWMTalonSRX(2);
-  // anthony testing stuff
-  //private PWMTalonSRX teethshifting = new PWMTalonSRX(6);
-  //private PWMTalonSRX wrist = new PWMTalonSRX(4);
   
-  
-  //private Joystick whiteR = new Joystick(0);
-  private XboxController xbox = new XboxController(0);
+  private XboxController xbox = new XboxController(0); // xbox controller support
 
-  //private SpeedControllerGroup m_left = new SpeedControllerGroup(m_leftA, m_leftB);
-	//private SpeedControllerGroup m_right = new SpeedControllerGroup(m_rightA, m_rightB);
+  PWMTalonSRX m_left = new PWMTalonSRX(1);
+  PWMTalonSRX m_right = new PWMTalonSRX(0);
+  PWMSparkMax spark1 = new PWMSparkMax(6); // sweep
+  PWMSparkMax spark2 = new PWMSparkMax(4); // lift
+  Servo servo = new Servo(3); 
+  DifferentialDrive m_drive = new DifferentialDrive(m_right, m_left);
+  int x = 0;
 
-  private PWMTalonSRX frontLeft = new PWMTalonSRX(0);
-  private PWMTalonSRX backLeft = new PWMTalonSRX(1);
-  private PWMTalonSRX frontRight = new PWMTalonSRX(3);
-  private PWMTalonSRX backRight = new PWMTalonSRX(2);
-
-  //private DifferentialDrive m_drive = new DifferentialDrive(m_left, m_right);
-  private MecanumDrive mecanumDrive = new MecanumDrive(frontLeft, backLeft, frontRight, backRight);
-
-  /**
-   * This function is run when the robot is first started up and should be
-   * used for any initialization code.
-   */
+   // start up code
   @Override
   public void robotInit() {
     m_chooser.setDefaultOption("Default Auto", kDefaultAuto);
     m_chooser.addOption("My Auto", kCustomAuto);
     SmartDashboard.putData("Auto choices", m_chooser);
+    System.out.println("starting up!");
   }
 
-  /**
-   * This function is called every robot packet, no matter the mode. Use
-   * this for items like diagnostics that you want ran during disabled,
-   * autonomous, teleoperated and test.
-   *
-   * <p>This runs after the mode specific periodic functions, but before
-   * LiveWindow and SmartDashboard integrated updating.
-   */
+  // this is called periodicly no matter the mode
   @Override
   public void robotPeriodic() {
+
   }
 
   /**
@@ -87,7 +71,6 @@ public class Robot extends TimedRobot {
   @Override
   public void autonomousInit() {
     m_autoSelected = m_chooser.getSelected();
-    // m_autoSelected = SmartDashboard.getString("Auto Selector", kDefaultAuto);
     System.out.println("Auto selected: " + m_autoSelected);
   }
 
@@ -98,7 +81,49 @@ public class Robot extends TimedRobot {
   public void autonomousPeriodic() {
     switch (m_autoSelected) {
       case kCustomAuto:
+      double tv = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tv").getDouble(0); //taget 0/1
+      double tx = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tx").getDouble(0); // horizontal offset from crosshair to target
+      double ty = NetworkTableInstance.getDefault().getTable("limelight").getEntry("ty").getDouble(0); // vertical offset
+      double ta = NetworkTableInstance.getDefault().getTable("limelight").getEntry("ta").getDouble(0); //targer area 0-100
+      double targetOffsetAngle_Vertical = ty;
 
+// how many degrees back is your limelight rotated from perfectly vertical?
+double limelightMountAngleDegrees = 90.0;
+
+// distance from the center of the Limelight lens to the floor
+double limelightLensHeightInches = 6.4;
+
+// distance from the target to the floor
+double goalHeightInches = 6.4;
+
+double angleToGoalDegrees = limelightMountAngleDegrees + targetOffsetAngle_Vertical;
+double angleToGoalRadians = angleToGoalDegrees * (3.14159 / 180.0);
+
+//calculate distance
+double distanceFromLimelightToGoalInches = (goalHeightInches - limelightLensHeightInches)/Math.tan(angleToGoalRadians);
+System.out.println(distanceFromLimelightToGoalInches);
+
+      
+        NetworkTableInstance.getDefault().getTable("limelight").getEntry("pipeline").setNumber(3); //wall
+        if(distanceFromLimelightToGoalInches<5){
+          m_drive.tankDrive(-.5, .6);
+        }
+        NetworkTableInstance.getDefault().getTable("limelight").getEntry("pipeline").setNumber(1); //gear
+        if (tv == 1 && ta == 25){ // if you see a ball and it is 25 percent of screen 
+          if(tx>0 && tx<4){ // if ball is centered enough 
+            if(ty<20){ // if ball is down low on the camera
+              m_drive.tankDrive(-.5, .6);
+            }
+          }
+          }
+          else{
+            m_drive.tankDrive(.5, .5);
+          }
+        x++;
+        if(x==500){
+          m_drive.tankDrive(-1, -.5);
+          Timer.delay(2);
+        }
         // Put custom auto code here
         break;
       case kDefaultAuto:
@@ -113,32 +138,78 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void teleopPeriodic() {
-    //double m_stickX = whiteR.getX();
-		//double m_stickY = whiteR.getY();
-    //double m_stickZ = whiteR.getZ();
 
-    double m_stickX = xbox.getX(Hand.kLeft);
-    //double m_stickY = xbox.getY(Hand.kLeft);
-
-    double l_trigger = xbox.getTriggerAxis(Hand.kLeft) * -1;
-    double r_trigger = xbox.getTriggerAxis(Hand.kRight);
-    double m_stickY = l_trigger + r_trigger;
-    double zRotation = 0;
-    if (xbox.getBumper(Hand.kRight))
-      zRotation = 0.5;
-    else if (xbox.getBumper(Hand.kLeft))
-      zRotation = -0.5;
-    else
-      zRotation = 0;
-
-
-    mecanumDrive.driveCartesian(m_stickY * -1, m_stickX, zRotation);
+   // double LJoystickX = xbox.getLeftX();
+    double LJoystickY = xbox.getLeftY();
+    // ^^ left joystick inputs
+    // double RJoystickx = xbox.getRightX();
+    double RJoystickY = xbox.getRightY(); 
+    // ^^ right joystick inputs
+    // double L_trigger = xbox.getLeftTriggerAxis();
+    // double R_trigger = xbox.getRightTriggerAxis();
+    // ^^ trigger inputs
+    boolean L_bumper = xbox.getLeftBumper();
+    boolean R_bumper = xbox.getRightBumper();
+    // ^^ bumper inputs
+    boolean A_Button = xbox.getRawButton(1);
+    boolean B_Button = xbox.getRawButton(2);
+    boolean X_Button = xbox.getRawButton(3);
+    boolean Y_Button = xbox.getRawButton(4);
+    double Arrow = xbox.getPOV();  
+    // ^^ button inputs
+    boolean L_Joystick = xbox.getLeftStickButton();
+    boolean R_Joystick = xbox.getRightStickButton();
+    // ^^ joystick down input
+    RJoystickY = RJoystickY * -1;
+    if(Arrow == 0){
+      spark2.set(.5);
+    }
+    else if(Arrow == 180){
+      spark2.set(-.5);
+    }
+    else if(Arrow == 90 || Arrow == 270){
+      spark2.set(0);
+    }
+    else if(B_Button){
+      spark1.set(.5);
+    }
+    else if(X_Button){      
+      spark1.set(0);
+    }
+    if(A_Button){
+      System.out.println("mama");
+      servo.setAngle(180);
+     System.out.println(servo.getAngle());
+     servo.set(1);
+    }
+    else if(Y_Button){
+      System.out.println("joe");
+      servo.setAngle(0);
+      servo.set(0);
+    }
+    else if(R_Joystick || L_Joystick){ 
+      m_drive.tankDrive(LJoystickY/2, RJoystickY/2);
+}    
+    else if (L_bumper){
+      m_drive.tankDrive(-1, 1);
+    }
+    else if(R_bumper){
+      m_drive.tankDrive(0, 0);
+    }
+    else{
+      m_drive.tankDrive(LJoystickY, RJoystickY);
+    }
+   
+   
+   
   }
 
-  /**
+
+  /*
    * This function is called periodically during test mode.
    */
   @Override
   public void testPeriodic() {
+//6.4in
   }
 }
